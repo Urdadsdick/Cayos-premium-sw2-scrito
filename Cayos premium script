@@ -1,0 +1,257 @@
+if game.PlaceId == 11177482306 then
+    -- Load OrionLib for the GUI
+    local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
+    local Window = OrionLib:MakeWindow({
+        Name = "Cayos Hub for Street Wars 2",
+        HidePremium = false,
+        SaveConfig = true,
+        ConfigFolder = "OrionTest"
+    })
+
+    -- Initialize Global Values for toggles
+    _G.killall = false
+    _G.godmode = false
+    _G.autoPickup = false
+    _G.onePunch = false
+    _G.mopAutoFarm = false
+    _G.teleportToSpawn = false
+    _G.fly = false
+    _G.esp = false
+    _G.killAura = false
+    _G.flingAll = false
+    _G.hasAccess = false  -- Track if the player has the correct key
+
+    -- Function to ask for key input
+    function askForKey()
+        local player = game.Players.LocalPlayer
+        local key = OrionLib:MakeInput({
+            Title = "Enter Key",
+            Default = "",
+            Text = "Enter the key to use the script.",
+            SubmitText = "Submit",
+            Callback = function(input)
+                if input == "SW2" then
+                    _G.hasAccess = true
+                    OrionLib:MakeNotification({
+                        Name = "Access Granted",
+                        Content = "You have successfully unlocked the features!",
+                        Image = "rbxassetid://4483345998",
+                        Time = 5
+                    })
+                else
+                    _G.hasAccess = false
+                    OrionLib:MakeNotification({
+                        Name = "Access Denied",
+                        Content = "Incorrect key. Please try again.",
+                        Image = "rbxassetid://4483345998",
+                        Time = 5
+                    })
+                end
+            end
+        })
+    end
+
+    -- Check if the player has access to use the features
+    askForKey()
+
+    -- Function to enable KillAll (fires the Tap event continuously)
+    function killAll()
+        while _G.killall and _G.hasAccess do
+            game:GetService("ReplicatedStorage").Remotes.Tap:FireServer()
+            wait(0.0001)  -- Prevents script from overwhelming the server
+        end
+    end
+
+    -- Function to enable God Mode (keeps player's health at max)
+    function enableGodMode()
+        local player = game.Players.LocalPlayer
+        local character = player.Character or player.CharacterAdded:Wait()
+
+        -- Ensure the player has a Humanoid to check health
+        if character and character:FindFirstChild("Humanoid") then
+            character.Humanoid:GetPropertyChangedSignal("Health"):Connect(function()
+                if _G.godmode and character.Humanoid.Health < character.Humanoid.MaxHealth then
+                    -- Set health back to max if it falls below the max value
+                    character.Humanoid.Health = character.Humanoid.MaxHealth
+                end
+            end)
+        end
+    end
+
+    -- Function to enable Auto Pickup
+    function enableAutoPickup()
+        local player = game.Players.LocalPlayer
+        local character = player.Character or player.CharacterAdded:Wait()
+
+        -- Continuously check for nearby items
+        while _G.autoPickup and _G.hasAccess do
+            -- Loop through all items in the workspace (or wherever they are dropped)
+            for _, item in pairs(workspace:GetChildren()) do
+                if item:IsA("Tool") and item.Parent ~= character then
+                    local distance = (item.Position - character.HumanoidRootPart.Position).Magnitude
+                    if distance < 10 then  -- Adjust the distance as necessary
+                        item.Parent = character  -- Pickup the item
+                    end
+                end
+            end
+            wait(0.5)  -- Delay to avoid performance issues
+        end
+    end
+
+    -- Function for One Punch kill
+    function enableOnePunch()
+        local player = game.Players.LocalPlayer
+        local character = player.Character or player.CharacterAdded:Wait()
+
+        -- Loop to instantly kill enemies with one punch
+        while _G.onePunch and _G.hasAccess do
+            if character and character:FindFirstChild("HumanoidRootPart") then
+                local target = nil
+                for _, obj in pairs(workspace:GetChildren()) do
+                    if obj:IsA("Model") and obj:FindFirstChild("Humanoid") and obj.Humanoid.Health > 0 then
+                        -- Check if the object is an enemy
+                        if (obj.HumanoidRootPart.Position - character.HumanoidRootPart.Position).Magnitude < 10 then
+                            target = obj
+                            break
+                        end
+                    end
+                end
+                if target then
+                    target.Humanoid.Health = 0  -- Instantly kill the target
+                end
+            end
+            wait(0.1)  -- Delay to avoid performance issues
+        end
+    end
+
+    -- Function to enable Mop Auto Farm
+    function enableMopAutoFarm()
+        while _G.mopAutoFarm and _G.hasAccess do
+            local player = game.Players.LocalPlayer
+            local character = player.Character or player.CharacterAdded:Wait()
+
+            -- Loop through Mop objects in the workspace
+            for _, mop in pairs(workspace:GetChildren()) do
+                if mop:IsA("Model") and mop:FindFirstChild("Humanoid") then
+                    local distance = (mop.Position - character.HumanoidRootPart.Position).Magnitude
+                    if distance < 10 then
+                        -- Mop interaction logic (this might need to be adjusted based on game mechanics)
+                        mop.Parent = character  -- Example of interaction with the Mop
+                    end
+                end
+            end
+            wait(0.5)  -- Delay to avoid performance issues
+        end
+    end
+
+    -- Function to enable ESP
+    function enableESP()
+        while _G.esp and _G.hasAccess do
+            for _, obj in pairs(workspace:GetChildren()) do
+                if obj:IsA("Model") and obj:FindFirstChild("Humanoid") then
+                    local box = Instance.new("BoxHandleAdornment")
+                    box.Adornee = obj
+                    box.Size = obj.PrimaryPart.Size
+                    box.Color3 = Color3.fromRGB(255, 0, 0)  -- Red box for enemies
+                    box.Transparency = 0.5
+                    box.Parent = obj
+                    wait(0.1)  -- Avoid flooding the server with too many adornments
+                end
+            end
+            wait(0.5)
+        end
+    end
+
+    -- Function to enable Fly
+    function enableFly()
+        local player = game.Players.LocalPlayer
+        local character = player.Character or player.CharacterAdded:Wait()
+
+        -- Fly logic
+        local bodyVelocity = Instance.new("BodyVelocity")
+        bodyVelocity.MaxForce = Vector3.new(10000, 10000, 10000)
+        bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+
+        while _G.fly and _G.hasAccess do
+            if character and character:FindFirstChild("HumanoidRootPart") then
+                bodyVelocity.Parent = character.HumanoidRootPart
+                -- Apply upwards force to simulate flying
+                bodyVelocity.Velocity = Vector3.new(0, 50, 0)
+            end
+            wait(0.1)
+        end
+    end
+
+    -- Function to enable Kill Aura
+    function enableKillAura()
+        local player = game.Players.LocalPlayer
+        local character = player.Character or player.CharacterAdded:Wait()
+
+        -- Loop to instantly kill nearby players
+        while _G.killAura and _G.hasAccess do
+            for _, obj in pairs(workspace:GetChildren()) do
+                if obj:IsA("Model") and obj:FindFirstChild("Humanoid") then
+                    if (obj.HumanoidRootPart.Position - character.HumanoidRootPart.Position).Magnitude < 5 then
+                        obj.Humanoid.Health = 0  -- Instantly kill the target
+                    end
+                end
+            end
+            wait(0.1)
+        end
+    end
+
+    -- Function to fling all players
+    function flingAllPlayers()
+        for _, player in pairs(game.Players:GetPlayers()) do
+            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                local bodyVelocity = Instance.new("BodyVelocity")
+                bodyVelocity.MaxForce = Vector3.new(10000, 10000, 10000)
+                bodyVelocity.Velocity = Vector3.new(math.random(-100, 100), math.random(100, 200), math.random(-100, 100))
+                bodyVelocity.Parent = player.Character.HumanoidRootPart
+                wait(0.1)
+            end
+        end
+    end
+
+    -- GUI Tab for Troll Features
+    local trollTab = Window:MakeTab({
+        Name = "Troll",
+        Icon = "rbxassetid://4483345998",
+        PremiumOnly = false
+    })
+
+    -- Add Toggle for Kill All
+    trollTab:AddToggle({
+        Name = "Enable Kill All",
+        Default = false,
+        Callback = function(state)
+            _G.killall = state
+            if state then
+                killAll()
+            end
+        end
+    })
+
+    -- Add Button for 75 WalkSpeed
+    trollTab:AddButton({
+        Name = "75 WalkSpeed",
+        Callback = function()
+            game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = 75
+        end
+    })
+
+    -- Add Toggle for God Mode
+    trollTab:AddToggle({
+        Name = "Enable God Mode",
+        Default = false,
+        Callback = function(state)
+            _G.godmode = state
+            if state then
+                enableGodMode()
+            end
+        end
+    })
+
+    -- Add Toggle for One Punch
+    trollTab:AddToggle({
+        Name = "Enable One Punch",
